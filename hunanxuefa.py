@@ -65,7 +65,6 @@ def exctue(book:dict):
     :param answer 每本书的答案
 '''
 def excute2(book:dict,answer:list):
-    objId = book["objId"]
     index = 0
     url = "http://hn.12348.gov.cn/fxmain/onlineanswer/ex"
     for list in answer:
