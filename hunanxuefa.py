@@ -41,7 +41,7 @@ header = {
     'Pragma': 'no-cache',
     'X-Requested-With': 'XMLHttpRequest',
     'Cookie': cookie,
-    'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
     'Content-Type': 'application/json; charset=utf-8',
     'Accept': '*/*',
     'Host': 'hn.12348.gov.cn',
