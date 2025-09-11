@@ -1,127 +1,592 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+湖南如法网学习自动化脚本
+功能：自动登录、获取课程、完成答题
+日期：2025-09-11
+"""
 
-import requests as rq
+import requests
+import json
 from bs4 import BeautifulSoup
+import re
+import itertools
+import time
+import redis
+import logging
+import base64
+import urllib
+import sys
+from typing import Dict, List, Optional, Tuple, Any
 
-cookie = input("请输入你的cookie:\n")
 
-# 八五普法
-bawupufa ={ 'objId':'1823271524825571328','bookName':'八五普法导读','chapter_content':[{'id': '1823271524838154240', 'contentId': '1823271524825571328', 'title': '编委会'}, {'id': '1823272237584621568', 'contentId': '1823271524825571328', 'title': '厚植法治沃土 为奋力谱写中国式现代化湖南篇章贡献法治力量'}, {'id': '1823272789445976064', 'contentId': '1823271524825571328', 'title': '第一编习近平法治思想'}, {'id': '1823273812881317888', 'contentId': '1823271524825571328', 'title': '第二编 法治大事记'}, {'id': '1823274048647340032', 'contentId': '1823271524825571328', 'title': '第三编 法律导读'}, {'id': '1823274191127846912', 'contentId': '1823271524825571328', 'title': '第四编 以案释法'}, {'id': '1823274737129758720', 'contentId': '1823271524825571328', 'title': '一、擦亮法治的政治底色'}, {'id': '1823274768058556416', 'contentId': '1823271524825571328', 'title': '二、人民就是江山，江山就是人民'}, {'id': '1823274770222817280', 'contentId': '1823271524825571328', 'title': '三、鞋子合不合脚，自己穿了才知道'}, {'id': '1823274772575821824', 'contentId': '1823271524825571328', 'title': '四、法以强国，宪以载道'}, {'id': '1823274796416245760', 'contentId': '1823271524825571328', 'title': '五、方向决定道路，道路决定命运'}, {'id': '1823274803290710016', 'contentId': '1823271524825571328', 'title': '六、法治兴则国兴，法治强则国强'}, {'id': '1823274805769543680', 'contentId': '1823271524825571328', 'title': '七、在共同推进上着力，在一体建设上用劲'}, {'id': '1823274808193851392', 'contentId': '1823271524825571328', 'title': '八、从“有法可依”走向“良法善治”'}, {'id': '1823274810437804032', 'contentId': '1823271524825571328', 'title': '九、既要立足中国，又要心怀天下'}, {'id': '1823274812593676288', 'contentId': '1823271524825571328', 'title': '十、没有金刚钻，揽不了瓷器活'}, {'id': '1823274814707605504', 'contentId': '1823271524825571328', 'title': '十一、敬一贤则众贤悦，诛一恶则众恶惧'}, {'id': '1823274887168401408', 'contentId': '1823271524825571328', 'title': '一、为“立规矩”而立的“规矩”'}, {'id': '1823274892671328256', 'contentId': '1823271524825571328', 'title': '二、烟花就是人间“烟火”'}, {'id': '1823274894797840384', 'contentId': '1823271524825571328', 'title': '三、给“自己人”派发的“定心丸”'}, {'id': '1823274896865632256', 'contentId': '1823271524825571328', 'title': '四、提升“关键少数”的法律素养是“关键”'}, {'id': '1823274899013115904', 'contentId': '1823271524825571328', 'title': '五、法与时转则治，治与世宜则有功'}, {'id': '1823274900955078656', 'contentId': '1823271524825571328', 'title': '六、根治“无形伤害”的“有形”武器'}, {'id': '1823274903136116736', 'contentId': '1823271524825571328', 'title': '七、让彩礼回归“礼”的司法设计'}, {'id': '1823274905505898496', 'contentId': '1823271524825571328', 'title': '八、为了“餐桌上”和“舌尖上”的安全'}, {'id': '1823274907976343552', 'contentId': '1823271524825571328', 'title': '九、基层社会治理的“样板”和“金名片”'}, {'id': '1823274910748778496', 'contentId': '1823271524825571328', 'title': '十、“天下无诈”的“中国行动”'}, {'id': '1823274968718254080', 'contentId': '1823271524825571328', 'title': '一、“成其身而天下成，治其身而天下治”'}, {'id': '1823274970962206720', 'contentId': '1823271524825571328', 'title': '二、勇于“亮剑”，把“利剑”磨得更光更亮'}, {'id': '1823274972526682112', 'contentId': '1823271524825571328', 'title': '三、筑牢国家秘密安全防线的法治“城墙”'}, {'id': '1823274974506393600', 'contentId': '1823271524825571328', 'title': '四、“靶向治理”的行政配方'}, {'id': '1823274976515465216', 'contentId': '1823271524825571328', 'title': '五、罚不当罪，则不如无罚'}, {'id': '1823274978449039360', 'contentId': '1823271524825571328', 'title': '六、“食为政首，粮安天下”'}, {'id': '1823274980449722368', 'contentId': '1823271524825571328', 'title': '七、高水平社会主义市场经济体制的“守护神”'}, {'id': '1823274982425239552', 'contentId': '1823271524825571328', 'title': '八、道路千万条，安全第一条'}, {'id': '1823274984509808640', 'contentId': '1823271524825571328', 'title': '九、以法之名，让爱无“碍”'}, {'id': '1823274986703429632', 'contentId': '1823271524825571328', 'title': '十、为党管“档”，为国守史'}, {'id': '1823274989698162688', 'contentId': '1823271524825571328', 'title': '十一、科技兴则民族兴，科技强则国家强'}, {'id': '1823275037882327040', 'contentId': '1823271524825571328', 'title': '一、善有善报，恶有恶报'}, {'id': '1823275048850432000', 'contentId': '1823271524825571328', 'title': '二、让孩子笑起来更好看'}, {'id': '1823275050767228928', 'contentId': '1823271524825571328', 'title': '三、“最严罚单”的司法逻辑'}, {'id': '1823275052889546752', 'contentId': '1823271524825571328', 'title': '四、司法保护生命尊严的判决创新'}, {'id': '1823275054680514560', 'contentId': '1823271524825571328', 'title': '五、现实版“药神”遇上司法温度'}, {'id': '1823275056526008320', 'contentId': '1823271524825571328', 'title': '六、“八项规定”：以“小切口”带来大变局'}, {'id': '1823275058488942592', 'contentId': '1823271524825571328', 'title': '七、“感情深，一口闷”的法律之问'}, {'id': '1823275060485431296', 'contentId': '1823271524825571328', 'title': '八、“虚拟数字人”来了，你准备好了吗？'}, {'id': '1823275062712606720', 'contentId': '1823271524825571328', 'title': '九、拯救“护寨神树”，司法在行动'}, {'id': '1823275064943976448', 'contentId': '1823271524825571328', 'title': '十、让劳动者更加有尊严'}, {'id': '1823296596378394624', 'contentId': '1823271524825571328', 'title': '十二、毒品一日不绝，禁毒一日不止'}, {'id': '1823296600887271424', 'contentId': '1823271524825571328', 'title': '十三、只有“进行时”，没有“完成时”'}]}
-bawupufa_answer = [[{'1823889225604407296': 'A'}], [{'1823889368873443328': 'C'}], [{'1823889627888492544': 'B'}], [{'1823889834340524032': 'B'}], [{'1823890066851766272': 'B'}], [{'1823890250616807424': 'A'}], [{'1823894087872290816': 'C'}], [{'1823894349538140160': 'A,B,C'}], [{'1823896254335164416': 'A'}], [{'1823896790530793472': 'A'}], [{'1823897058785894400': 'A'}], [{'1823897221164179456': 'A'}], [{'1823897341377126400': 'A'}], [{'1823897481177473024': 'A'}], [{'1823897654146375680': 'C'}], [{'1823897868005548032': 'B'}], [{'1823898033726693376': 'C'}], [{'1823898246017196032': 'A'}], [{'1823898420588322816': 'C'}], [{'1823898682082205696': 'A'}], [{'1823898870867828736': 'C'}], [{'1823899051386478592': 'A,B,C'}], [{'1823899259587534848': 'C'}], [{'1823899553784406016': 'A,B,C'}], [{'1823899893976014848': 'A,B,C'}], [{'1823900348953141248': 'C'}], [{'1823901560339439616': 'A,B'}], [{'1823901708402565120': 'B'}], [{'1824000107206418432': 'C'}], [{'1824000547167936512': 'A'}], [{'1824000697378545664': 'A,B,C'}], [{'1824000850307063808': 'B'}], [{'1824001408355016704': 'B'}], [{'1824001569412096000': 'A,B'}], [{'1824001707585052672': 'A'}], [{'1824001881606725632': 'A,B'}], [{'1824002089501597696': 'B'}], [{'1824002217234931712': 'A'}], [{'1824002350949343232': 'B'}], [{'1824002515227648000': 'A,B,C'}], [{'1824002659222298624': 'B'}], [{'1824002776385986560': 'A'}], [{'1824001112094547968': 'A,B,C'}], [{'1824001281510875136': 'C'}],]
+# 配置彩色日志
+class ColoredFormatter(logging.Formatter):
+    """自定义日志格式化器，支持颜色输出"""
 
-# 应知应会法律知识导读
-yingzhiyinghui = {'objId':'1824032258543067136','bookName':'应知应会法律知识导读','chapter_content':[{'id': '1824032258555650048', 'contentId': '1824032258543067136', 'title': '以勤学党规国法促“应知应会”成“真知真会”'}, {'id': '1824032787767762944', 'contentId': '1824032258543067136', 'title': '目录'}, {'id': '1824035991163248640', 'contentId': '1824032258543067136', 'title': '一 法治理念编'}, {'id': '1824113852335267840', 'contentId': '1824032258543067136', 'title': '二 组织和作风建设编'}, {'id': '1824203892256153600', 'contentId': '1824032258543067136', 'title': '三 纪检监察编'}, {'id': '1824204419480166400', 'contentId': '1824032258543067136', 'title': '四 国家安全编'}, {'id': '1824204706269896704', 'contentId': '1824032258543067136', 'title': '五 民事行为编'}, {'id': '1824205156956250112', 'contentId': '1824032258543067136', 'title': '六 依法行政编'}, {'id': '1824206136011661312', 'contentId': '1824032258543067136', 'title': '七 犯罪防治编'}, {'id': '1824207258709401600', 'contentId': '1824032258543067136', 'title': '八 社会治理编'}, {'id': '1824208235122401280', 'contentId': '1824032258543067136', 'title': '九 乡村振兴编'}]}
-yingzhiyinghui_answer = [
-    [{'1824209661458391040': 'A'}, {'1824209861115650048': 'C'}],
-    [{'1824210062559682560': 'B'}, {'1824210316927442944': 'C'}],
-    [{'1824210489711796224': 'A'}, {'1824210601804570624': 'A,B,C'}],
-    [{'1824210789822636032': 'B'}, {'1824210922165510144': 'A,B,C'}, {'1824211023223070720': 'A'}],
-    [{'1824211144555896832': 'C'}, {'1824211249375748096': 'B'}],
-    [{'1824211523653869568': 'A'}, {'1824211639781564416': 'A,B,C'}, {'1824211756785868800': 'A,B,C'}],
-    [{'1824211921437466624': 'B'}, {'1824212080208650240': 'C'}],
-    [{'1824212510997225472': 'A,B,C'}, {'1824212682800111616': 'C'}],
-    [{'1824212815549833216': 'A'}, {'1824212960358178816': 'A,B,C'}],
-]
+    # 颜色代码
+    COLORS = {
+        'DEBUG': '\033[0;36m',  # 青色
+        'INFO': '\033[0;32m',  # 绿色
+        'WARNING': '\033[1;33m',  # 黄色
+        'ERROR': '\033[1;31m',  # 红色
+        'CRITICAL': '\033[1;41m',  # 红色背景
+        'RESET': '\033[0m'  # 重置颜色
+    }
 
-# 2024省教育厅普法读本
-jiaoyutingpufa = {'objId':'1824676086983696384','bookName':'2024省教育厅普法','chapter_content':[{'id': '1824676086996279296', 'contentId': '1824676086983696384', 'title': '1、中华人民共和国教育法'}, {'id': '1824677382826500096', 'contentId': '1824676086983696384', 'title': '2、中华人民共和国教师法'}, {'id': '1824678209553178624', 'contentId': '1824676086983696384', 'title': '3、中华人民共和国义务教育法'}, {'id': '1824678882080464896', 'contentId': '1824676086983696384', 'title': '4、中华人民共和国职业教育法'}, {'id': '1824679769209315328', 'contentId': '1824676086983696384', 'title': '5、中华人民共和国家庭教育促进法'}, {'id': '1824680359532437504', 'contentId': '1824676086983696384', 'title': '6、中华人民共和国未成年人保护法'}, {'id': '1824681324209774592', 'contentId': '1824676086983696384', 'title': '7、中华人民共和国预防未成年人犯罪法'}, {'id': '1824682008569192448', 'contentId': '1824676086983696384', 'title': '8、中华人民共和国民办教育促进法'}, {'id': '1824682479023300608', 'contentId': '1824676086983696384', 'title': '9、中华人民共和国国家通用语言文字法'}, {'id': '1824682815221932032', 'contentId': '1824676086983696384', 'title': '10、湖南省学校学生人身伤害事故预防和处理条例'}]}
-jiaoyutingpufa_answer = [
-    [{'1824688086056968192': 'D'}, {'1824689359359582208': 'A'}, {'1824689925187969024': 'A,B,C'}, {'1824693346053922816': 'A,B,C'}],
-    [{'1824693739559329792': 'D'}, {'1824694266598793216': 'D'}, {'1824694882607833088': 'A,D'}, {'1824695242705608704': 'A,B,D'}],
-    [{'1824695973261090816': 'C'}, {'1824696385431150592': 'D'}, {'1824696721034190848': 'C,D'}, {'1824697136584859648': 'A,C'}],
-    [{'1824697668984643584': 'B'}, {'1824698074859053056': 'B'}, {'1824698471380164608': 'A,B,C,D'}, {'1824698813043974144': 'A,B,C'}],
-    [{'1824700306820177920': 'B'}, {'1824700673393958912': 'D'}, {'1824701160310710272': 'A,B,C,D'}, {'1824701614163763200': 'A,B,C,D'}],
-    [{'1824702208861544448': 'B'}, {'1824702634990247936': 'D'}, {'1824702983574659072': 'A,B,C,D'}, {'1824703374773198848': 'A,B,C,D'}],
-    [{'1824704791244185600': 'B'}, {'1824705192232230912': 'D'}, {'1824706559520808960': 'A,B,C,D'}, {'1824707660689186816': 'A,B,C'}],
-    [{'1824708358227107840': 'D'}, {'1824708750591664128': 'C'}, {'1824709109540200448': 'A,B,C,D'}, {'1824709534049902592': 'A,B,D'}],
-    [{'1824709916700450816': 'A'}, {'1824710620685017088': 'C'}, {'1824711017805914112': 'A,B,C,D'}, {'1824711632195952640': 'A,C'}],
-    [{'1824712163803013120': 'D'}, {'1824712563486629888': 'C'}, {'1824712976684294144': 'A,B,D'}, {'1824713450888110080': 'A,B,C,D'}],
-]
-header = {
+    def format(self, record):
+        # 添加颜色到日志级别
+        levelname = record.levelname
+        if levelname in self.COLORS:
+            record.levelname = f"{self.COLORS[levelname]}{levelname}{self.COLORS['RESET']}"
+
+        # 调用父类格式化方法
+        result = super().format(record)
+
+        # 在日志之间添加空行
+        if not hasattr(self, '_last_level'):
+            self._last_level = None
+
+        if self._last_level != record.levelname:
+            result = f"\n{result}"
+            self._last_level = record.levelname
+
+        return result
+
+
+# 配置日志
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# 创建控制台处理器
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# 设置日志格式
+formatter = ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+console_handler.setFormatter(formatter)
+
+# 添加处理器到日志器
+logger.addHandler(console_handler)
+
+# 百度OCR文字识别配置
+# 获取界面：https://console.bce.baidu.com/ai-engine/old/#/ai/ocr/app/list
+CLIENT_ID = ''  # 第一个输入API_KEY
+CLIENT_SECRET = ''  # 第二个输入Secret_KEY
+
+
+# 获取用户凭证
+def get_credentials() -> Tuple[str, str]:
+    """获取用户名和密码"""
+    try:
+        username = input("请输入手机号：\n").strip()
+        password = input("请输入密码：\n").strip()
+
+        if not username or not password:
+            logger.error("❌ 用户名或密码不能为空")
+            sys.exit(1)
+
+        return username, password
+    except KeyboardInterrupt:
+        logger.info("\n👋 用户中断操作，程序退出")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"❌ 获取用户凭证时发生错误: {e}")
+        sys.exit(1)
+
+
+USERNAME, PASSWORD = get_credentials()
+
+
+# 初始化Redis连接
+def init_redis() -> Optional[redis.Redis]:
+    """初始化Redis连接"""
+    try:
+        redis_client = redis.Redis(
+            host='localhost',
+            port=6379,
+            db=0,
+            socket_timeout=5,
+            socket_connect_timeout=5,
+            decode_responses=True  # 自动解码返回的字节数据
+        )
+        redis_client.ping()  # 测试连接
+        logger.info("🎯 Redis连接成功，准备使用缓存功能")
+        return redis_client
+    except redis.ConnectionError:
+        logger.warning("⚠️ 无法连接到Redis，将不使用缓存功能")
+        return None
+    except Exception as e:
+        logger.warning(f"⚠️ Redis连接异常: {e}，将不使用缓存功能")
+        return None
+
+
+REDIS_CLIENT = init_redis()
+
+# 设置请求头
+HEADERS = {
     'Pragma': 'no-cache',
     'X-Requested-With': 'XMLHttpRequest',
-    'Cookie': cookie,
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    'Content-Type': 'application/json; charset=utf-8',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+    'Content-Type': 'application/json; charset=UTF-8',
     'Accept': '*/*',
     'Host': 'hn.12348.gov.cn',
     'Connection': 'keep-alive'
 }
 
-'''
-    获取每本书的问题，返回值类型为数组字典
-    :param contentId:   普法书本的id
-    :return chapterIds  获取每本书的章节Ids,eg: [{'1824209661458391040': ''}, {'1824209861115650048': ''}],
-'''
-def exctue(book:dict):
-    for chapter in book["chapter_content"]:
-        # 1. 获取questionId
-        question_id = get_question_id(book["objId"],chapter["id"])
-        print(question_id)
-
-'''
-    执行做答功能
-    :param book 每本书
-    :param answer 每本书的答案
-'''
-def excute2(book:dict,answer:list):
-    index = 0
-    url = "http://hn.12348.gov.cn/fxmain/onlineanswer/ex"
-    for list in answer:
-        payload_list = []
-        for item in list:
-            for question_id,answer in item.items():
-                flag = 1
-                if answer is None:
-                    continue
-                if len(answer) > 1:
-                    flag = 2
-                payload_dict = {
-                    'answerResult': answer,
-                    'chapterId': book["chapter_content"][index]["id"],
-                    'contentId': book["objId"],
-                    'contentType': '2',
-                    'flag': flag,
-                    'questionId': question_id
-                }
-            payload_list.append(payload_dict)
-        payload_list = f"{payload_list}"
+# 有趣的日志消息
+FUN_MESSAGES = {
+    "start": "🚀 开始获取必修课程，准备起飞啦！",
+    "fetch_success": "✅ 成功获取到 {} 门课程，学习之路开启！",
+    "fetch_fail": "❌ 获取必修课程失败，可能是网络问题，请检查后重试",
+    "book_detail": "📚 开始获取书籍详情，翻开知识的篇章",
+    "book_success": "✅ 成功获取到 {} 个章节，准备开始学习！",
+    "book_fail": "❌ 获取书籍详情失败，可能是服务器繁忙",
+    "question_start": "🧠 开始获取问题，准备挑战你的知识极限",
+    "question_success": "✅ 成功提取到 {} 道题目，准备好接受挑战了吗？",
+    "question_fail": "❌ 获取题目失败，可能是页面结构发生了变化",
+    "redis_hit": "🎯 从缓存中找到了题目 {} 的答案: {}",
+    "redis_miss": "🤔 缓存中没有题目 {} 的答案，需要探索新知识",
+    "answer_correct": "🎉 太棒了！题目 {} 回答正确！正确答案是: {}",
+    "answer_wrong": "😅 答案 {} 不太对，再试试别的",
+    "answer_submit": "📤 提交答案: {}",
+    "answer_complete": "🏆 答题完成！总共答对了 {} 道题，你真是学霸！",
+    "waiting": "⏳ 等待2秒，避免请求过快",
+    "login_success": "🔑 登录成功！",
+    "login_fail": "❌ 登录失败，请检查用户名、密码和验证码",
+    "verification_fail": "❌ 验证码识别失败，尝试重新获取",
+    "network_error": "🌐 网络请求异常，请检查网络连接"
+}
 
 
-        response = rq.post(url,payload_list,headers=header).json()
-        if response["extend"]["result"][question_id] == "1":
-            print(f"【{book['chapter_content'][index]['title']}】\t回答正确")
-            pass
+# 请求重试装饰器
+def retry_request(max_retries=3, delay=2):
+    """请求重试装饰器"""
 
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+                    if attempt == max_retries - 1:
+                        logger.error(f"❌ 请求失败，已达最大重试次数: {e}")
+                        raise
+                    logger.warning(f"⚠️ 请求失败，{delay}秒后重试 ({attempt + 1}/{max_retries}): {e}")
+                    time.sleep(delay)
+
+        return wrapper
+
+    return decorator
+
+
+@retry_request(max_retries=3, delay=2)
+def safe_request(method: str, url: str, **kwargs) -> Optional[requests.Response]:
+    """安全的网络请求函数，包含异常处理和重试机制"""
+    try:
+        response = requests.request(method, url, **kwargs, timeout=30)
+        response.raise_for_status()
+        return response
+    except requests.exceptions.Timeout:
+        logger.error("⏰ 请求超时，请检查网络连接")
+        raise
+    except requests.exceptions.ConnectionError:
+        logger.error("🔌 连接错误，请检查网络连接")
+        raise
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"🌐 HTTP错误: {e}")
+        raise
+    except requests.exceptions.RequestException as e:
+        logger.error(f"🌐 网络请求异常: {e}")
+        raise
+
+
+def get_baidu_ocr_token() -> str:
+    """
+    百度OCR获取鉴权token
+    文档：https://cloud.baidu.com/doc/OCR/s/Ck3h7y2ia
+    """
+    try:
+        host = f'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}'
+        request = urllib.request.Request(host)
+        request.add_header('Content-Type', 'application/json; charset=UTF-8')
+        response = urllib.request.urlopen(request)
+        token_content = response.read()
+
+        if token_content:
+            token_info = json.loads(token_content)
+            return token_info['access_token']
+    except Exception as e:
+        logger.error(f"❌ 获取百度OCR token失败: {e}")
+        raise
+
+
+def image_to_word(image_data: str) -> str:
+    """
+    调用百度OCR，自动识别验证码
+    每个账号每月1000次的识别额度
+    文档：https://cloud.baidu.com/doc/OCR/s/1k3h7y3db
+    """
+    try:
+        access_token = get_baidu_ocr_token()
+        data = {'image': image_data}
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+
+        url = f"https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token={access_token}"
+        response = requests.post(url, headers=headers, data=data, timeout=30)
+        response.raise_for_status()
+
+        result = response.json()
+        code = result['words_result'][0]['words']
+        logger.info(f"📷 识别的验证码: {code}")
+        return code
+    except Exception as e:
+        logger.error(f"❌ OCR识别失败: {e}")
+        raise
+
+
+def get_verification_code() -> Dict[str, str]:
+    """获取如法网的验证码"""
+    try:
+        url = "http://hn.12348.gov.cn/ucenter/api/kaptcha"
+        headers = {
+            'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
+            'Accept': '*/*',
+            'Host': 'hn.12348.gov.cn',
+            'Connection': 'keep-alive'
+        }
+
+        response = safe_request('GET', url, headers=headers)
+        response_data = response.json()
+
+        captchaKey = response_data['body']['captchaKey']
+        image = response_data['body']['base64Img']
+
+        return {"captchaKey": captchaKey, "image": image}
+    except Exception as e:
+        logger.error(f"❌ 获取验证码失败: {e}")
+        raise
+
+
+def get_login_data(verification_data: Dict[str, str]) -> Dict[str, str]:
+    """处理登录数据，包括验证码识别"""
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            code = image_to_word(verification_data['image'])
+            if len(code) == 4:  # 验证码应该是4位
+                verification_data["code"] = code
+                return verification_data
+
+            logger.warning(f"⚠️ 验证码识别结果长度不正确: {code} (长度: {len(code)})")
+            if attempt < max_attempts - 1:
+                logger.info("🔄 重新获取验证码...")
+                verification_data = get_verification_code()
+                time.sleep(1)
+        except Exception as e:
+            logger.error(f"❌ 处理登录数据失败: {e}")
+            if attempt == max_attempts - 1:
+                raise
+
+    logger.error(FUN_MESSAGES["verification_fail"])
+    raise ValueError("验证码识别失败")
+
+
+def do_login(login_data: Dict[str, str]) -> str:
+    """用户登录逻辑"""
+    try:
+        login_header = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'Accept': '*/*',
+            'Referer': 'http://hn.12348.gov.cn/ucenter/',
+            'Connection': 'keep-alive'
+        }
+
+        url = "http://hn.12348.gov.cn/ucenter/api/doLogin"
+        encoded_password = base64.b64encode(PASSWORD.encode('utf-8')).decode('utf-8')
+
+        payload = {
+            "redirectUrl": "http://hn.12348.gov.cn/fxmain/study?biz=fxmain",
+            "username": USERNAME,
+            "password": encoded_password,
+            "code": int(login_data['code']),
+            "captchaKey": login_data['captchaKey'],
+            "ifRemember": False
+        }
+
+        response = safe_request('POST', url, headers=login_header, data=json.dumps(payload))
+        response_data = response.json()
+
+        if response_data.get("success"):
+            logger.info(FUN_MESSAGES["login_success"])
+            return f"_tf_sso_main_session_id={response_data['body']}"
         else:
-            print(f"【{book['chapter_content'][index]['title']}】\t回答错误,请检查原因,题目id:  {question_id}")
-        index += 1
-    print(f"{book['bookName']}\t做答完毕，如果出现错误，或者漏答。尝试多运行几次脚本即可")
+            logger.error(FUN_MESSAGES["login_fail"])
+            raise ValueError(f"登录失败: {response_data.get('msg', '未知错误')}")
+    except Exception as e:
+        logger.error(f"❌ 登录过程失败: {e}")
+        raise
 
 
-'''
-    获取每本书需要题目
-    :param case_id  即obj_id
-    :param chapter_id   每本书的章节id
-    
-'''
-def get_question_id(obj_id:str,chapter_id:str) ->str:
-    qid_list = []
-    url = f"http://hn.12348.gov.cn/fxmain/onlineanswer/os?caseId={obj_id}&chapId={chapter_id}"
-    html_content = rq.get(url,headers=header).text
-    if len(html_content) > 0:
+def fetch_legal_publicity() -> Optional[List[Dict[str, Any]]]:
+    """获取必修的所有课程"""
+    logger.info(FUN_MESSAGES["start"])
+
+    url = "http://hn.12348.gov.cn/fxmain/legalpublicity/queryPubBook"
+    payload = {"condition": {"contentType1": 2, "state": 3, "businessCode": 4}}
+
+    try:
+        response = safe_request('POST', url, headers=HEADERS, json=payload)
+        data = response.json()
+
+        # 只获取前两门课程，避免过多请求
+        result = [{"title": item["title"], "id": item["id"]} for item in data[:2]]
+        logger.info(FUN_MESSAGES["fetch_success"].format(len(result)))
+
+        return result
+    except Exception as e:
+        logger.error(FUN_MESSAGES["fetch_fail"])
+        logger.debug(f"错误详情: {e}")
+        return None
+
+
+def get_book_detail(books: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """获取书籍详情"""
+    logger.info(FUN_MESSAGES["book_detail"])
+
+    url = "http://hn.12348.gov.cn/fxmain/legalpublicity/querycontentall"
+    results = []
+
+    for book in books:
+        try:
+            payload = {"contentId": book.get("id")}
+            response = safe_request('POST', url, headers=HEADERS, json=payload)
+            response_data = response.json()
+
+            for item in response_data:
+                results.append({
+                    "title": item.get("title", "未知标题"),
+                    "chapId": item.get("id"),
+                    "caseId": book.get("id")
+                })
+        except Exception as e:
+            logger.error(f"❌ 获取书籍 {book.get('title', '未知')} 详情失败: {e}")
+            continue
+
+    if results:
+        logger.info(FUN_MESSAGES["book_success"].format(len(results)))
+    else:
+        logger.warning(FUN_MESSAGES["book_fail"])
+
+    return results
+
+
+def get_questions(result: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Optional[BeautifulSoup]]:
+    """获取问题"""
+    logger.info(f"📖 处理章节: {result.get('title', '未知章节')}")
+
+    url = f"http://hn.12348.gov.cn/fxmain/onlineanswer/os?caseId={result.get('caseId')}&chapId={result.get('chapId')}"
+
+    try:
+        response = safe_request('GET', url, headers=HEADERS)
+        html_content = response.text
         soup = BeautifulSoup(html_content, 'html.parser')
-        # 查找所有带有 "qid" 属性的 span 标签
-        questions = soup.find_all('span', class_=['question', 'question2'])
-        # 获取 qid 并返回列表字典形式
-        # qid_list = [{"qid": q.get("qid")} for q in questions]
-        qid_list = [{q.get("qid"): ''} for q in questions]
-        # 输出结果
-        print(qid_list)
 
+        questions = soup.find_all('span', class_=re.compile('question'))
+        question_data = []
+
+        for question in questions:
+            qid = question.get('qid')
+            flag = question.get('flag')
+
+            if qid and flag:
+                question_data.append({'qid': qid, 'flag': flag})
+
+        if question_data:
+            logger.info(FUN_MESSAGES["question_success"].format(len(question_data)))
+        else:
+            logger.warning("📝 这个章节没有找到题目")
+
+        return question_data, soup
+    except Exception as e:
+        logger.error(FUN_MESSAGES["question_fail"])
+        logger.debug(f"错误详情: {e}")
+        return [], None
+
+
+def submit_answer(qid: str, caseId: str, chapId: str, flag: str,
+                  answer_result: str, correct_answers: Dict[str, str],
+                  from_cache: bool) -> bool:
+    """提交答案并检查结果"""
+    url = "http://hn.12348.gov.cn/fxmain/onlineanswer/ex"
+
+    payload_dict = {
+        "questionId": qid,
+        "contentId": caseId,
+        "contentType": "2",
+        "flag": flag,
+        "answerResult": answer_result,
+        "chapterId": chapId
+    }
+
+    try:
+        payload_str = json.dumps([payload_dict])
+
+        if from_cache:
+            logger.info(f"🔄 {FUN_MESSAGES['answer_submit'].format(answer_result)} (来自缓存)")
+        else:
+            logger.info(f"🔍 {FUN_MESSAGES['answer_submit'].format(answer_result)}")
+
+        response = safe_request('POST', url, headers=HEADERS, data=payload_str)
+        response_data = response.json()
+
+        if response_data.get('code') == 200:
+            result = response_data.get('extend', {}).get('result', {})
+            if result.get(qid) == '1':
+                logger.info(FUN_MESSAGES["answer_correct"].format(qid, answer_result))
+                correct_answers[qid] = answer_result
+
+                # 如果不是来自缓存，存储到Redis
+                if not from_cache and REDIS_CLIENT:
+                    try:
+                        REDIS_CLIENT.set(f"answer:{qid}", answer_result, ex=86400)  # 缓存24小时
+                        logger.info(f"💾 已将题目 {qid} 的正确答案存入缓存")
+                    except Exception as e:
+                        logger.warning(f"⚠️ 存储到缓存错误: {e}")
+
+                # 无论是否成功，都等待2秒
+                logger.info(FUN_MESSAGES["waiting"])
+                time.sleep(2)
+                return True
+            else:
+                logger.info(FUN_MESSAGES["answer_wrong"].format(answer_result))
+        else:
+            logger.error(f"❌ 请求失败: {response_data.get('msg')}")
+
+    except Exception as e:
+        logger.error(f"❌ 提交答案异常: {e}")
+
+    # 无论是否成功，都等待2秒
+    logger.info(FUN_MESSAGES["waiting"])
+    time.sleep(2)
+    return False
+
+
+def to_answer(question_data: List[Dict[str, Any]], caseId: str,
+              chapId: str, soup: BeautifulSoup) -> Dict[str, str]:
+    """答题函数"""
+    correct_answers = {}
+
+    for question in question_data:
+        qid = question['qid']
+        flag = question['flag']
+        cached_answer = None
+
+        # 检查缓存中是否已有正确答案
+        if REDIS_CLIENT:
+            try:
+                cached_answer = REDIS_CLIENT.get(f"answer:{qid}")
+                if cached_answer:
+                    logger.info(FUN_MESSAGES["redis_hit"].format(qid, cached_answer))
+
+                    # 即使从缓存获取答案，也需要提交
+                    if submit_answer(qid, caseId, chapId, flag, cached_answer, correct_answers, True):
+                        continue
+                    else:
+                        # 如果提交失败，删除缓存并继续尝试
+                        logger.warning("⚠️ 缓存答案提交失败，删除缓存并重新尝试")
+                        REDIS_CLIENT.delete(f"answer:{qid}")
+                        cached_answer = None
+            except Exception as e:
+                logger.warning(f"⚠️ 缓存操作错误: {e}")
+
+        if not cached_answer:
+            logger.info(FUN_MESSAGES["redis_miss"].format(qid))
+
+        # 查找该题目的所有选项
+        options = soup.find_all('input', {'name': qid})
+        all_options = [option.get('value') for option in options if option.get('value')]
+
+        if not all_options:
+            logger.warning(f"⚠️ 题目 {qid} 没有找到选项")
+            continue
+
+        logger.info(f"📋 题目 {qid} 的所有选项: {all_options}")
+
+        # 尝试所有可能的答案组合
+        if flag == '1':  # 单选题
+            for option in all_options:
+                if submit_answer(qid, caseId, chapId, flag, option, correct_answers, False):
+                    break
+
+        elif flag == '2':  # 多选题
+            # 生成所有可能的选项组合（从2个选项开始）
+            min_options = max(2, 1)  # 多选题至少选择2个选项
+            max_options = len(all_options)
+
+            # 尝试不同长度的组合
+            for r in range(min_options, max_options + 1):
+                combinations = list(itertools.combinations(all_options, r))
+
+                for combination in combinations:
+                    answer_result = ','.join(combination)
+                    if submit_answer(qid, caseId, chapId, flag, answer_result, correct_answers, False):
+                        break
+                else:
+                    continue  # 继续下一个r值
+                break  # 如果找到了正确答案，跳出外层循环
+
+    logger.info(FUN_MESSAGES["answer_complete"].format(len(correct_answers)))
+    return correct_answers
+
+
+def main():
+    """主函数"""
+    try:
+        # 1. 登录前先获取验证码
+        verification_data = get_verification_code()
+
+        # 2. 获取到验证图片后，进行文字识别，最多识别3次
+        login_data = get_login_data(verification_data)
+
+        # 3. 登录成功获取token
+        cookie = do_login(login_data)
+
+        # 4. 更新headers头部
+        HEADERS['Cookie'] = cookie
+        logger.info(f"🍪 登录成功，Cookie已更新")
+
+        time.sleep(2)
+
+        # 5. 获取必修课程
+        legal_data = fetch_legal_publicity()
+        if not legal_data:
+            logger.error("❌ 无法获取必修课程，程序退出")
+            return
+
+        # 6. 获取书籍详情
+        results = get_book_detail(legal_data)
+        if not results:
+            logger.error("❌ 无法获取书籍详情，程序退出")
+            return
+
+        # 7. 处理每个章节的问题
+        for result in results:
+            question_data, soup = get_questions(result)
+
+            if question_data and soup:
+                to_answer(question_data, result['caseId'], result['chapId'], soup)
+            else:
+                logger.warning(f"📝 章节 {result.get('title', '未知')} 没有题目或获取失败")
+
+    except KeyboardInterrupt:
+        logger.info("\n👋 用户中断操作，程序退出")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"❌ 程序执行异常: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    excute2(bawupufa,bawupufa_answer)
-    excute2(yingzhiyinghui,yingzhiyinghui_answer)
-    excute2(jiaoyutingpufa,jiaoyutingpufa_answer)
+    main()
