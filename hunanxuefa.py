@@ -71,8 +71,8 @@ logger.addHandler(console_handler)
 
 # 百度OCR文字识别配置
 # 获取界面：https://console.bce.baidu.com/ai-engine/old/#/ai/ocr/app/list
-CLIENT_ID = ''  # 第一个输入API_KEY
-CLIENT_SECRET = ''  # 第二个输入Secret_KEY
+CLIENT_ID = '您的API_KEY'  # 第一个输入API_KEY
+CLIENT_SECRET = '您的Secret_KEY'  # 第二个输入Secret_KEY
 
 
 # 获取用户凭证
@@ -590,3 +590,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
